@@ -6,23 +6,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-  /* ---------- BASE ---------- */
   body {
     margin: 0;
     font-family: Times New Roman;
     color: white;
     text-align: center;
-    background: none;
     overflow-x: hidden;
   }
 
-  /* ---------- BLURRED BACKGROUND ---------- */
   .background {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    inset: 0;
     background-image: url("1000063709 (1).avif");
     background-size: cover;
     background-position: center;
@@ -33,15 +27,11 @@
 
   .overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.55);
+    inset: 0;
+    background: rgba(0,0,0,0.55);
     z-index: -1;
   }
 
-  /* ---------- LOGO ---------- */
   .logo {
     position: fixed;
     top: 15px;
@@ -51,11 +41,10 @@
 
   .logo img {
     height: 110px;
-    max-width: 100%;
   }
 
   h1 {
-    margin-top: 20px;
+    margin-top: 25px;
   }
 
   .container {
@@ -103,47 +92,86 @@
 
   .footer {
     margin-top: 30px;
-    font-size: 1.30em;
+    font-size: 1.2em;
     color: #ccc;
   }
 
-  /* ---------- MOBILE ---------- */
+  /* ---------- MODAL ---------- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .modal-box {
+    background: #111;
+    padding: 25px;
+    border-radius: 10px;
+    max-width: 500px;
+    text-align: justify;
+  }
+
+  .modal-box h2 {
+    text-align: center;
+  }
+
+  .modal-box button {
+    display: block;
+    margin: 15px auto 0;
+  }
+
   @media (max-width: 600px) {
-    table {
-      font-size: 0.9em;
-    }
-    input {
-      width: 90%;
-    }
-    .logo img {
-      height: 80px;
-    }
+    table { font-size: 0.9em; }
+    input { width: 90%; }
+    .logo img { height: 80px; }
   }
 </style>
 </head>
 
 <body oncontextmenu="return false">
 
-<!-- Background layers -->
 <div class="background"></div>
 <div class="overlay"></div>
 
-<!-- LOGO -->
 <div class="logo">
-  <img src="seventyfive (1).png" alt="BIT Sindri 75 Years Logo">
+  <img src="seventyfive (1).png" alt="BIT Sindri Logo">
+</div>
+
+<!-- INSTRUCTION MODAL -->
+<div class="modal" id="instructionModal">
+  <div class="modal-box">
+    <h2>Instructions</h2>
+    <ul>
+      <li>For mobile users convert your browser to <strong>desktop site</strong> for better experience.</li> 
+      <li>Enter your registration number</li> 
+      <li>Select a semester</li>
+      <li>Add subjects with credits and grades</li> 
+      <li>Save SGPA semester-wise</li> 
+      <li>Calculate CGPA after saving semester-wise credits and grades</li> 
+      <li>Data stays only in your browser of that <strong>particular device</strong> similar to how google passwords are saved in your device</li>
+    </ul>
+    <button onclick="closeModal()">Got it</button>
+  </div>
 </div>
 
 <h1>BIT Sindri Grade Portal</h1>
 
+<!-- 🔹 VIEW INSTRUCTIONS BUTTON (PLACED HERE AS REQUESTED) -->
+<button onclick="openModal()">View Instructions</button>
+
 <div class="container">
 
   <label><strong>Registration / Roll Number</strong></label><br>
-  <input type="text" id="regNo" placeholder="Enter registration number"
+  <input id="regNo" placeholder="Registration / Roll Number"
          onblur="loadSemesterData()">
 
   <br><br>
 
-  <label><strong>Semester</strong></label><br>
+  <label><strong>Select Semester</strong></label><br>
   <select id="semester" onchange="loadSemesterData()">
     <option value="1">Semester 1</option>
     <option value="2">Semester 2</option>
@@ -155,13 +183,14 @@
     <option value="8">Semester 8</option>
   </select>
 
-  <br>
+  <br><br>
+
   <button onclick="addRow()">Add Subject</button>
 
   <table>
     <thead>
       <tr>
-        <th>Subject Name</th>
+        <th>Subject</th>
         <th>Credits</th>
         <th>Grade</th>
       </tr>
@@ -176,146 +205,108 @@
   <div class="result" id="result"></div>
 
   <div class="footer">
-    <div>Created by Amit Dhar, Mechanical 2022-26 Batch</div>
-    
-    <div>
-      Disclaimer: This website does not store anyone’s data on any server.
-      All information is saved only in your browser.
-    </div>
-    <div>Dedicated to the betterment of BIT Sindri.</div>
+    <div>Created by Amit Dhar, Mechanical 2022–26 Batch</div>
+    <div>Dedicated to the betterment of BIT Sindri</div>
     <div>© All rights reserved</div>
   </div>
-
 </div>
 
 <script>
-/* ---------- GRADE POINT SYSTEM ---------- */
-const gradePoints = {
-  "A+": 10,
-  "A": 9,
-  "B+": 8,
-  "B": 7,
-  "C+": 6,
-  "C": 5,
-  "F": 0
-};
+const gradePoints = { "A+":10, "A":9, "B+":8, "B":7, "C+":6, "C":5, "F":0 };
 
-/* ---------- LOAD SEMESTER DATA ---------- */
-function loadSemesterData() {
-  const regNo = document.getElementById("regNo").value.trim();
-  const sem = document.getElementById("semester").value;
-  const tbody = document.getElementById("tableBody");
-
-  tbody.innerHTML = "";
-  if (!regNo) return;
-
-  const data = JSON.parse(localStorage.getItem(regNo));
-  if (!data || !data[sem] || !data[sem].subjects) return;
-
-  data[sem].subjects.forEach(sub => {
-    tbody.insertAdjacentHTML("beforeend", createRow(sub.name, sub.credit, sub.grade));
-  });
+function openModal() {
+  document.getElementById("instructionModal").style.display = "flex";
 }
 
-/* ---------- ADD SUBJECT ROW ---------- */
+function closeModal() {
+  document.getElementById("instructionModal").style.display = "none";
+}
+
 function addRow() {
-  document.getElementById("tableBody")
-    .insertAdjacentHTML("beforeend", createRow("", "", "A"));
-}
-
-/* ---------- ROW TEMPLATE ---------- */
-function createRow(name, credit, grade) {
-  return `
+  tableBody.insertAdjacentHTML("beforeend", `
     <tr>
-      <td><input type="text" value="${name || ""}"></td>
-      <td><input type="number" step="0.5" value="${credit || ""}"></td>
+      <td><input></td>
+      <td><input type="number" step="0.5"></td>
       <td>
-        <select>
-          ${Object.keys(gradePoints)
-            .map(g => `<option ${g===grade?"selected":""}>${g}</option>`)
-            .join("")}
-        </select>
+        <select>${Object.keys(gradePoints).map(g=>`<option>${g}</option>`).join("")}</select>
       </td>
     </tr>
-  `;
+  `);
 }
 
-/* ---------- CALCULATE & SAVE SGPA ---------- */
+function loadSemesterData() {
+  const reg = regNo.value.trim();
+  const sem = semester.value;
+  tableBody.innerHTML = "";
+  if (!reg) return;
+
+  const data = JSON.parse(localStorage.getItem(reg));
+  if (!data || !data[sem]) return;
+
+  data[sem].subjects.forEach(s => {
+    tableBody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td><input value="${s.name}"></td>
+        <td><input type="number" value="${s.credit}"></td>
+        <td>
+          <select>${Object.keys(gradePoints)
+            .map(g=>`<option ${g===s.grade?"selected":""}>${g}</option>`).join("")}
+          </select>
+        </td>
+      </tr>
+    `);
+  });
+}
+
 function calculateAndSaveSGPA() {
-  const regNo = document.getElementById("regNo").value.trim();
-  const sem = document.getElementById("semester").value;
-  const rows = document.querySelectorAll("#tableBody tr");
+  const reg = regNo.value.trim();
+  const sem = semester.value;
+  if (!reg) return alert("Enter registration number");
 
-  if (!regNo) {
-    alert("Enter registration number");
-    return;
-  }
+  let credits = 0, total = 0, subjects = [];
 
-  let semCredits = 0;
-  let weightedSum = 0;
-  let subjects = [];
-
-  rows.forEach(row => {
-    const name = row.cells[0].children[0].value;
-    const credit = Number(row.cells[1].children[0].value) || 0;
-    const grade = row.cells[2].children[0].value;
-
-    subjects.push({ name, credit, grade });
-    weightedSum += credit * gradePoints[grade];
-    semCredits += credit;
+  document.querySelectorAll("#tableBody tr").forEach(r => {
+    const c = +r.cells[1].children[0].value || 0;
+    const g = r.cells[2].children[0].value;
+    credits += c;
+    total += c * gradePoints[g];
+    subjects.push({
+      name: r.cells[0].children[0].value,
+      credit: c,
+      grade: g
+    });
   });
 
-  if (semCredits === 0) {
-    alert("Enter subject credits");
-    return;
-  }
+  if (!credits) return alert("Enter subject credits");
 
-  const sgpa = weightedSum / semCredits;
+  const sgpa = total / credits;
+  const data = JSON.parse(localStorage.getItem(reg)) || {};
+  data[sem] = { sgpa, credits, subjects };
+  localStorage.setItem(reg, JSON.stringify(data));
 
-  let data = JSON.parse(localStorage.getItem(regNo)) || {};
-  data[sem] = {
-    sgpa: Number(sgpa.toFixed(4)),
-    credits: Number(semCredits),
-    subjects
-  };
-
-  localStorage.setItem(regNo, JSON.stringify(data));
-
-  document.getElementById("result").innerText =
-    `SGPA (Semester ${sem}): ${sgpa.toFixed(2)}\nSaved Successfully`;
+  result.innerText = `SGPA (Semester ${sem}): ${sgpa.toFixed(2)}\nSaved Successfully`;
 }
 
-/* ---------- CGPA ---------- */
 function calculateCGPA() {
-  const regNo = document.getElementById("regNo").value.trim();
-  if (!regNo) {
-    alert("Enter registration number");
-    return;
-  }
+  const reg = regNo.value.trim();
+  if (!reg) return alert("Enter registration number");
 
-  const data = JSON.parse(localStorage.getItem(regNo));
-  if (!data) {
-    document.getElementById("result").innerText =
-      "No semester data found.";
-    return;
-  }
+  const data = JSON.parse(localStorage.getItem(reg));
+  if (!data) return result.innerText = "No semester data found";
 
-  let totalWeighted = 0;
-  let totalCredits = 0;
+  let totalWeighted = 0, totalCredits = 0;
 
-  Object.values(data).forEach(sem => {
-    if (!isNaN(sem.sgpa) && !isNaN(sem.credits)) {
-      totalWeighted += sem.sgpa * sem.credits;
-      totalCredits += sem.credits;
+  Object.values(data).forEach(s => {
+    if (typeof s.sgpa === "number" && typeof s.credits === "number" && s.credits > 0) {
+      totalWeighted += s.sgpa * s.credits;
+      totalCredits += s.credits;
     }
   });
 
-  const cgpa = totalCredits
-    ? (totalWeighted / totalCredits).toFixed(2)
-    : "0.00";
+  if (!totalCredits) return result.innerText = "No valid semester data";
 
-  document.getElementById("result").innerText =
-    `Final CGPA: ${cgpa}\nThank you, Visit Again!!!`;
+  result.innerText =
+    `Final CGPA: ${(totalWeighted / totalCredits).toFixed(2)}\nThank you, Visit Again!!!`;
 }
 </script>
 
